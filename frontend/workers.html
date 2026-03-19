@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>KaamMitra – Browse Workers</title>
+  <link rel="stylesheet" href="/assets/style.css"/>
+  <style>
+    .filter-bar { background: white; border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); margin-bottom: 24px; }
+    .filter-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+    .filter-field { flex: 1; min-width: 160px; }
+    .filter-field label { font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+
+<!-- ─── Navbar ─── -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="brand">🔨 Kaam<span>Mitra</span></a>
+    <ul class="nav-links">
+      <li><a href="/customer.html">Post a Job</a></li>
+      <li><a href="/worker.html">Worker Login</a></li>
+      <li><span id="nav-user" style="color:rgba(255,255,255,0.8);font-size:0.88rem;"></span></li>
+      <li><a href="/customer.html" id="nav-login" class="btn-nav">Post a Job</a></li>
+      <li><button id="nav-logout" class="btn btn-sm" style="display:none;background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);">Logout</button></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ─── Hero Banner ─── -->
+<div style="background:var(--primary);color:white;padding:32px 20px;text-align:center">
+  <h1 style="font-size:1.8rem;margin-bottom:8px">Browse Verified Workers</h1>
+  <p style="opacity:0.85">Find skilled, rated professionals near you. Filter by category, location, or rank.</p>
+</div>
+
+<div class="container" style="padding-top:24px;padding-bottom:40px">
+
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <div class="filter-row">
+      <div class="filter-field">
+        <label>Category</label>
+        <select id="filter-category" class="form-control">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>Max Distance (km)</label>
+        <select id="filter-radius" class="form-control">
+          <option value="">Any</option>
+          <option value="2">Within 2 km</option>
+          <option value="5" selected>Within 5 km</option>
+          <option value="10">Within 10 km</option>
+          <option value="20">Within 20 km</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>Sort By</label>
+        <select id="filter-sort" class="form-control">
+          <option value="rank">Rank & Points</option>
+          <option value="rating">Rating</option>
+          <option value="distance">Distance</option>
+          <option value="rate_low">Rate: Low to High</option>
+          <option value="rate_high">Rate: High to Low</option>
+        </select>
+      </div>
+      <div>
+        <button class="btn btn-primary" onclick="searchWorkers()">🔍 Search</button>
+      </div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" onclick="useMyLocation()">📍 Use My Location</button>
+      <span id="location-status" style="font-size:0.82rem;color:#718096"></span>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="search-alert"></div>
+  <div id="results-header" style="font-size:0.9rem;color:#718096;margin-bottom:14px"></div>
+  <div class="card-grid" id="workers-grid">
+    <div style="text-align:center;color:#718096;padding:60px;grid-column:1/-1">
+      <div style="font-size:2.5rem;margin-bottom:12px">👷</div>
+      <p>Use the filters above to find workers near you.</p>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="searchWorkers()">Show All Workers</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Footer ─── -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-bottom">&copy; 2025 KaamMitra</div>
+  </div>
+</footer>
+
+<script src="/assets/app.js"></script>
+<script>
+let userLat = null, userLng = null;
+
+async function init() {
+  KM.loadCategories(document.getElementById('filter-category'));
+  // Try to get location silently
+  try {
+    const loc = await KM.getUserLocation();
+    userLat = loc.lat; userLng = loc.lng;
+    document.getElementById('location-status').textContent = `📍 Location detected (${loc.lat.toFixed(3)}, ${loc.lng.toFixed(3)})`;
+  } catch {}
+  await searchWorkers();
+}
+
+async function useMyLocation() {
+  const btn = document.querySelector('[onclick="useMyLocation()"]');
+  KM.setLoading(btn, true);
+  try {
+    const loc = await KM.getUserLocation();
+    userLat = loc.lat; userLng = loc.lng;
+    document.getElementById('location-status').textContent = `✅ Location: ${loc.lat.toFixed(3)}, ${loc.lng.toFixed(3)}`;
+  } catch {
+    document.getElementById('location-status').textContent = '❌ Location access denied';
+  } finally {
+    KM.setLoading(btn, false);
+  }
+}
+
+async function searchWorkers() {
+  const category = document.getElementById('filter-category').value;
+  const radius   = document.getElementById('filter-radius').value || 50;
+  const sortBy   = document.getElementById('filter-sort').value;
+  const grid     = document.getElementById('workers-grid');
+
+  grid.innerHTML = '<div style="text-align:center;padding:40px;grid-column:1/-1"><span class="spinner" style="border-color:var(--primary);border-top-color:transparent;width:28px;height:28px;border-width:3px"></span></div>';
+
+  let url = '/workers?';
+  if (category) url += `category=${encodeURIComponent(category)}&`;
+  if (userLat && userLng) url += `lat=${userLat}&lng=${userLng}&radius=${radius}&`;
+
+  try {
+    const data = await KM.apiCall('GET', url.slice(0,-1), null, false);
+    let workers = data.workers;
+
+    // Sort
+    if (sortBy === 'rating')    workers = [...workers].sort((a,b) => (b.avg_rating||0) - (a.avg_rating||0));
+    if (sortBy === 'distance')  workers = [...workers].sort((a,b) => (a.distance_km||99) - (b.distance_km||99));
+    if (sortBy === 'rate_low')  workers = [...workers].sort((a,b) => a.daily_rate - b.daily_rate);
+    if (sortBy === 'rate_high') workers = [...workers].sort((a,b) => b.daily_rate - a.daily_rate);
+
+    document.getElementById('results-header').textContent =
+      workers.length ? `Showing ${workers.length} worker(s)` : '';
+
+    if (!workers.length) {
+      grid.innerHTML = `<div style="text-align:center;color:#718096;padding:60px;grid-column:1/-1">
+        <div style="font-size:2rem">🤔</div>
+        <p style="margin-top:12px">No workers found. Try expanding your search radius or selecting a different category.</p>
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = workers.map(w => KM.renderWorkerCard(w)).join('');
+  } catch (err) {
+    grid.innerHTML = `<div class="alert alert-error show" style="grid-column:1/-1">${err.message}</div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

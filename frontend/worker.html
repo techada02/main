@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>KaamMitra – Worker Dashboard</title>
+  <link rel="stylesheet" href="/assets/style.css"/>
+  <style>
+    .dashboard { display: grid; grid-template-columns: 260px 1fr; gap: 24px; padding: 24px 0; min-height: 80vh; }
+    .sidebar { background: white; border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; height: fit-content; }
+    .sidebar-nav { list-style: none; margin-top: 16px; }
+    .sidebar-nav li a { display: block; padding: 10px 14px; border-radius: 8px; color: var(--text); font-weight: 500; font-size: 0.92rem; transition: background 0.15s; }
+    .sidebar-nav li a:hover, .sidebar-nav li a.active { background: #e8f5e9; color: var(--primary); text-decoration: none; }
+    .rank-progress { height: 8px; background: #e2e8f0; border-radius: 99px; margin-top: 8px; overflow: hidden; }
+    .rank-bar { height: 100%; background: var(--primary); border-radius: 99px; transition: width 0.5s; }
+    @media (max-width: 768px) { .dashboard { grid-template-columns: 1fr; } .sidebar { display: none; } }
+  </style>
+</head>
+<body>
+
+<!-- ─── Navbar ─── -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="brand">🔨 Kaam<span>Mitra</span></a>
+    <ul class="nav-links">
+      <li><a href="/customer.html">Post a Job</a></li>
+      <li><span id="nav-user" style="color:rgba(255,255,255,0.8);font-size:0.88rem;"></span></li>
+      <li><a href="/" id="nav-login" class="btn-nav" style="display:none">Login</a></li>
+      <li><button id="nav-logout" class="btn btn-sm" style="display:none;background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);">Logout</button></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ─── Auth Modal ─── -->
+<div class="modal-overlay" id="auth-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="KM.hideModal('auth-modal')">×</button>
+    <div id="auth-step-phone">
+      <div class="modal-title">Worker Login / Register</div>
+      <div id="auth-alert"></div>
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="auth-name" class="form-control" placeholder="Your name"/>
+      </div>
+      <div class="form-group">
+        <label>Phone Number</label>
+        <input type="tel" id="auth-phone" class="form-control" placeholder="9876543210" maxlength="15"/>
+      </div>
+      <button class="btn btn-primary btn-block" id="btn-send-otp" onclick="doSendOTP()">Send OTP</button>
+    </div>
+    <div id="auth-step-otp" style="display:none">
+      <div class="modal-title">Enter OTP</div>
+      <div id="auth-otp-alert"></div>
+      <p style="font-size:0.9rem;color:#718096;margin-bottom:16px">OTP sent to <strong id="auth-phone-display"></strong></p>
+      <div class="form-group">
+        <label>6-Digit OTP</label>
+        <input type="text" id="auth-otp" class="form-control otp-input" maxlength="6" placeholder="• • • • • •"/>
+      </div>
+      <p id="demo-otp-hint" style="font-size:0.82rem;color:#dd6b20;margin-bottom:12px;display:none"></p>
+      <button class="btn btn-primary btn-block" id="btn-verify-otp" onclick="doVerifyOTP()">Verify OTP</button>
+      <button class="btn btn-outline btn-block" style="margin-top:8px" onclick="document.getElementById('auth-step-otp').style.display='none';document.getElementById('auth-step-phone').style.display='block'">← Back</button>
+    </div>
+    <div id="auth-step-profile" style="display:none">
+      <div class="modal-title">Complete Your Profile</div>
+      <div id="auth-profile-alert"></div>
+      <div class="form-group">
+        <label>Job Category *</label>
+        <select id="prof-category" class="form-control"></select>
+      </div>
+      <div class="form-group">
+        <label>Daily Rate (₹) *</label>
+        <input type="number" id="prof-rate" class="form-control" placeholder="e.g. 600" min="1"/>
+      </div>
+      <div class="form-group">
+        <label>About Yourself</label>
+        <textarea id="prof-bio" class="form-control" placeholder="Years of experience, skills..." rows="3"></textarea>
+      </div>
+      <button class="btn btn-primary btn-block" id="btn-save-profile" onclick="saveWorkerProfile()">Save Profile & Start</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Main Layout ─── -->
+<div class="container">
+  <!-- Login Prompt -->
+  <div id="login-prompt" style="display:none;text-align:center;padding:80px 20px">
+    <div style="font-size:3rem;margin-bottom:16px">👷</div>
+    <h2>Worker Dashboard – KaamMitra</h2>
+    <p style="color:#718096;margin:12px 0 28px">Register or login to view available jobs, manage your profile, and track your earnings.</p>
+    <button class="btn btn-primary" onclick="KM.showModal('auth-modal')">Login / Register</button>
+    <div style="margin-top:24px" class="keypad-box" style="max-width:500px;margin:24px auto 0">
+      <h3>📞 Using a Keypad Phone?</h3>
+      <p>Ask a customer to register you via the SMS system. You'll receive a message and just reply <strong>YES</strong> to accept jobs — no internet needed!</p>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="dashboard" id="dashboard" style="display:none">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div style="font-weight:700;font-size:1rem" id="sidebar-name">Worker</div>
+      <div style="font-size:0.82rem;color:#718096;margin-top:2px" id="sidebar-phone"></div>
+      <div style="margin-top:10px" id="sidebar-rank"></div>
+      <div class="rank-progress"><div class="rank-bar" id="rank-bar" style="width:0%"></div></div>
+      <div style="font-size:0.78rem;color:#718096;margin-top:4px" id="rank-points-label"></div>
+
+      <ul class="sidebar-nav" style="margin-top:16px">
+        <li><a href="#" class="active" onclick="showSection('available-jobs');loadAvailableJobs();return false">💼 Available Jobs</a></li>
+        <li><a href="#" onclick="showSection('my-jobs');loadMyJobsWorker();return false">📁 My Job History</a></li>
+        <li><a href="#" onclick="showSection('profile');loadProfile();return false">👤 My Profile</a></li>
+        <li><a href="#" onclick="showSection('stats');loadStats();return false">📊 Stats & Earnings</a></li>
+      </ul>
+
+      <!-- Availability Toggle -->
+      <div style="margin-top:20px;padding:14px;background:#f7f8fa;border-radius:var(--radius)">
+        <div style="font-size:0.85rem;font-weight:600;margin-bottom:8px">Availability</div>
+        <div class="toggle-wrap">
+          <label class="toggle">
+            <input type="checkbox" id="availability-toggle" onchange="toggleAvailability(this)"/>
+            <span class="toggle-slider"></span>
+          </label>
+          <span id="availability-label" style="font-size:0.88rem">Offline</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Available Jobs -->
+    <div id="section-available-jobs" class="main-content">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+          <h2>Available Jobs Near You</h2>
+          <button class="btn btn-outline btn-sm" onclick="loadAvailableJobs()">🔄 Refresh</button>
+        </div>
+        <div id="available-jobs-list">
+          <div style="text-align:center;color:#718096;padding:40px">Loading jobs...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- My Jobs (History) -->
+    <div id="section-my-jobs" class="main-content" style="display:none">
+      <div class="card">
+        <h2 style="margin-bottom:20px">My Job History</h2>
+        <div id="worker-jobs-list">
+          <div style="text-align:center;color:#718096;padding:40px">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile -->
+    <div id="section-profile" class="main-content" style="display:none">
+      <div class="card">
+        <h2 style="margin-bottom:4px">My Profile</h2>
+        <p style="color:#718096;font-size:0.9rem;margin-bottom:24px">Update your info, daily rate and category</p>
+        <div id="profile-alert"></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category</label>
+            <select id="edit-category" class="form-control"></select>
+          </div>
+          <div class="form-group">
+            <label>Daily Rate (₹)</label>
+            <input type="number" id="edit-rate" class="form-control" min="1"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>About Me / Bio</label>
+          <textarea id="edit-bio" class="form-control" rows="3"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="updateProfile()">Save Changes</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div id="section-stats" class="main-content" style="display:none">
+      <div class="card">
+        <h2 style="margin-bottom:20px">Stats & Dashboard</h2>
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card"><div class="stat-value" id="st-jobs">—</div><div class="stat-label">Jobs Completed</div></div>
+          <div class="stat-card"><div class="stat-value" id="st-points">—</div><div class="stat-label">Points Earned</div></div>
+          <div class="stat-card"><div class="stat-value" id="st-rating">—</div><div class="stat-label">Avg Rating</div></div>
+          <div class="stat-card"><div class="stat-value" id="st-rank">—</div><div class="stat-label">Rank</div></div>
+        </div>
+        <h3 style="margin:24px 0 14px">Recent Ratings</h3>
+        <div id="recent-ratings">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OTP Job Start Modal -->
+<div class="modal-overlay" id="job-otp-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="KM.hideModal('job-otp-modal')">×</button>
+    <div class="modal-title" id="job-otp-title">Enter OTP</div>
+    <p id="job-otp-desc" style="font-size:0.9rem;color:#718096;margin-bottom:16px"></p>
+    <div id="job-otp-alert"></div>
+    <div class="form-group">
+      <label>OTP</label>
+      <input type="text" id="job-otp-input" class="form-control otp-input" maxlength="6" placeholder="• • • • • •"/>
+    </div>
+    <button class="btn btn-primary btn-block" id="btn-submit-otp" onclick="submitJobOTP()">Submit</button>
+  </div>
+</div>
+
+<!-- ─── Footer ─── -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-bottom">&copy; 2025 KaamMitra – Worker Portal</div>
+  </div>
+</footer>
+
+<script src="/assets/app.js"></script>
+<script>
+let currentJobOTPAction = null; // { jobId, action: 'start'|'complete' }
+
+function showSection(name) {
+  ['available-jobs','my-jobs','profile','stats'].forEach(s => {
+    const el = document.getElementById(`section-${s}`);
+    if (el) el.style.display = s === name ? '' : 'none';
+  });
+  document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+}
+
+async function init() {
+  if (KM.isLoggedIn()) {
+    const user = KM.currentUser();
+    document.getElementById('dashboard').style.display    = '';
+    document.getElementById('login-prompt').style.display = 'none';
+    document.getElementById('sidebar-name').textContent   = user.name;
+    document.getElementById('sidebar-phone').textContent  = user.phone;
+    await loadProfile();
+    await loadAvailableJobs();
+  } else {
+    document.getElementById('dashboard').style.display    = 'none';
+    document.getElementById('login-prompt').style.display = '';
+    KM.showModal('auth-modal');
+  }
+}
+
+async function loadProfile() {
+  try {
+    const data = await KM.apiCall('GET', '/workers/profile');
+    const w    = data.worker;
+
+    // Update sidebar rank
+    document.getElementById('sidebar-rank').innerHTML = KM.formatRank(w.rank_level);
+
+    // Rank progress bar
+    const THRESHOLDS = { Bronze: 0, Silver: 100, Gold: 300, Platinum: 600 };
+    const NEXT       = { Bronze: 100, Silver: 300, Gold: 600, Platinum: 600 };
+    const cur  = THRESHOLDS[w.rank_level] || 0;
+    const nxt  = NEXT[w.rank_level] || 600;
+    const pct  = w.rank_level === 'Platinum' ? 100 : Math.round(((w.points - cur) / (nxt - cur)) * 100);
+    document.getElementById('rank-bar').style.width       = Math.min(pct, 100) + '%';
+    document.getElementById('rank-points-label').textContent = `${w.points} pts • ${w.rank_level === 'Platinum' ? 'Max rank!' : `${nxt - w.points} to ${Object.keys(NEXT)[Object.values(THRESHOLDS).indexOf(nxt)]}`}`;
+
+    // Availability toggle
+    document.getElementById('availability-toggle').checked = !!w.is_available;
+    document.getElementById('availability-label').textContent = w.is_available ? 'Online – accepting jobs' : 'Offline';
+
+    // Edit form
+    KM.loadCategories(document.getElementById('edit-category')).then(() => {
+      document.getElementById('edit-category').value = w.category || '';
+    });
+    document.getElementById('edit-rate').value = w.daily_rate || '';
+    document.getElementById('edit-bio').value  = w.bio || '';
+  } catch {}
+}
+
+async function loadAvailableJobs() {
+  const el = document.getElementById('available-jobs-list');
+  el.innerHTML = '<div style="text-align:center;color:#718096;padding:40px"><span class="spinner" style="border-color:var(--primary);border-top-color:transparent;width:24px;height:24px;border-width:3px"></span></div>';
+  try {
+    let url = '/jobs?status=open';
+    try {
+      const loc = await KM.getUserLocation();
+      url += `&lat=${loc.lat}&lng=${loc.lng}&radius=10`;
+    } catch {}
+    const data = await KM.apiCall('GET', url);
+    if (!data.jobs.length) {
+      el.innerHTML = '<div style="text-align:center;color:#718096;padding:40px">No open jobs near you right now. Check back soon! 🔄</div>';
+      return;
+    }
+    el.innerHTML = data.jobs.map(j => renderWorkerJobCard(j)).join('');
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error show">${err.message}</div>`;
+  }
+}
+
+function renderWorkerJobCard(j) {
+  const urgentTag = j.is_urgent ? '<span class="urgent-tag">🔴 URGENT</span> ' : '';
+  return `
+    <div class="job-card${j.is_urgent ? ' urgent' : ''}" style="margin-bottom:14px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:6px">
+        <div>
+          ${urgentTag}
+          <div class="job-title">${KM.escHtml(j.title)}</div>
+          <span class="job-category">${KM.escHtml(j.category)}</span>
+        </div>
+        ${KM.statusBadge(j.status)}
+      </div>
+      <div class="job-meta">
+        ${j.job_type ? `<span>⏱ ${j.job_type.replace('_',' ')}</span>` : ''}
+        ${j.address ? `<span>📍 ${KM.escHtml(j.address)}</span>` : ''}
+        ${j.budget_max ? `<span>💰 ₹${j.budget_min||0}–${j.budget_max}</span>` : ''}
+        ${j.distance_km !== undefined ? `<span>📍 ${j.distance_km} km away</span>` : ''}
+        ${j.customer_name ? `<span>👤 ${KM.escHtml(j.customer_name)}</span>` : ''}
+      </div>
+      ${j.description ? `<div style="font-size:0.85rem;color:#718096;margin-top:8px">${KM.escHtml(j.description)}</div>` : ''}
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="acceptJobFromCard('${j.id}', this)">✅ Accept Job</button>
+      </div>
+    </div>`;
+}
+
+async function acceptJobFromCard(jobId, btn) {
+  KM.setLoading(btn, true);
+  try {
+    const data = await KM.apiCall('POST', `/jobs/${jobId}/accept`);
+    btn.closest('.job-card').innerHTML = `
+      <div class="alert alert-success show">
+        ✅ Job Accepted! <strong>${KM.escHtml(data.job_title)}</strong><br/>
+        ${data.address ? `📍 ${KM.escHtml(data.address)}<br/>` : ''}
+        🔑 Start OTP: <strong style="font-size:1.2rem;letter-spacing:4px">${data.start_otp}</strong>
+        <div style="margin-top:10px">
+          <button class="btn btn-primary btn-sm" onclick="openStartOTP('${jobId}')">▶ Enter Start OTP</button>
+        </div>
+      </div>`;
+  } catch (err) {
+    KM.showAlert('job-alert', err.message, 'error');
+    KM.setLoading(btn, false);
+  }
+}
+
+function openStartOTP(jobId) {
+  currentJobOTPAction = { jobId, action: 'start' };
+  document.getElementById('job-otp-title').textContent = 'Enter Job Start OTP';
+  document.getElementById('job-otp-desc').textContent  = 'Ask the customer for the start OTP to begin the job.';
+  document.getElementById('job-otp-input').value = '';
+  KM.showModal('job-otp-modal');
+}
+
+function openCompleteOTP(jobId) {
+  currentJobOTPAction = { jobId, action: 'complete' };
+  document.getElementById('job-otp-title').textContent = 'Enter Job Completion OTP';
+  document.getElementById('job-otp-desc').textContent  = 'Ask the customer for the completion OTP to finish the job.';
+  document.getElementById('job-otp-input').value = '';
+  KM.showModal('job-otp-modal');
+}
+
+async function submitJobOTP() {
+  const otp = document.getElementById('job-otp-input').value.trim();
+  if (!otp) return KM.showAlert('job-otp-alert', 'Enter OTP', 'error');
+  if (!currentJobOTPAction) return;
+
+  const btn = document.getElementById('btn-submit-otp');
+  KM.setLoading(btn, true);
+  try {
+    const { jobId, action } = currentJobOTPAction;
+    await KM.apiCall('POST', `/jobs/${jobId}/${action}`, { otp });
+    KM.hideModal('job-otp-modal');
+    if (action === 'start') {
+      alert('✅ Job started! Remember to get the completion OTP when you finish.');
+    } else {
+      alert('🎉 Job completed! Thank you. Your rating has been requested from the customer.');
+    }
+    await loadMyJobsWorker();
+    showSection('my-jobs');
+  } catch (err) {
+    KM.showAlert('job-otp-alert', err.message, 'error');
+  } finally {
+    KM.setLoading(btn, false);
+  }
+}
+
+async function loadMyJobsWorker() {
+  const el = document.getElementById('worker-jobs-list');
+  try {
+    const data = await KM.apiCall('GET', '/workers/jobs');
+    if (!data.jobs.length) {
+      el.innerHTML = '<div style="text-align:center;color:#718096;padding:40px">No jobs yet. Accept your first job! 💼</div>';
+      return;
+    }
+    el.innerHTML = data.jobs.map(j => `
+      <div class="job-card" style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div class="job-title">${KM.escHtml(j.title)}</div>
+          ${KM.statusBadge(j.status)}
+        </div>
+        <div class="job-meta">
+          <span>📁 ${j.category}</span>
+          <span>📅 ${KM.formatDate(j.created_at)}</span>
+          ${j.address ? `<span>📍 ${KM.escHtml(j.address)}</span>` : ''}
+        </div>
+        ${j.status === 'assigned' ? `<button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="openStartOTP('${j.id}')">▶ Start Job</button>` : ''}
+        ${j.status === 'in_progress' ? `<button class="btn btn-accent btn-sm" style="margin-top:8px" onclick="openCompleteOTP('${j.id}')">✅ Complete Job</button>` : ''}
+      </div>`).join('');
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error show">${err.message}</div>`;
+  }
+}
+
+async function toggleAvailability(toggle) {
+  document.getElementById('availability-label').textContent = toggle.checked ? 'Online – accepting jobs' : 'Offline';
+  try {
+    await KM.apiCall('PUT', '/workers/availability', { is_available: toggle.checked });
+  } catch {}
+}
+
+async function updateProfile() {
+  const btn = document.querySelector('#section-profile .btn-primary');
+  KM.setLoading(btn, true);
+  try {
+    await KM.apiCall('PUT', '/workers/profile', {
+      category:   document.getElementById('edit-category').value,
+      daily_rate: document.getElementById('edit-rate').value,
+      bio:        document.getElementById('edit-bio').value,
+    });
+    KM.showAlert('profile-alert', '✅ Profile updated successfully', 'success');
+    await loadProfile();
+  } catch (err) {
+    KM.showAlert('profile-alert', err.message, 'error');
+  } finally {
+    KM.setLoading(btn, false);
+  }
+}
+
+async function loadStats() {
+  try {
+    const data = await KM.apiCall('GET', '/workers/stats');
+    const w    = data.stats.worker;
+    if (!w) return;
+    document.getElementById('st-jobs').textContent   = w.total_jobs || 0;
+    document.getElementById('st-points').textContent = w.points || 0;
+    document.getElementById('st-rank').textContent   = w.rank_level || '—';
+
+    // Get avg rating from profile
+    const pd = await KM.apiCall('GET', '/workers/profile');
+    document.getElementById('st-rating').textContent = pd.worker.avg_rating
+      ? parseFloat(pd.worker.avg_rating).toFixed(1) + '★' : '—';
+
+    const ratings = data.stats.recent_ratings;
+    const rEl = document.getElementById('recent-ratings');
+    if (!ratings.length) { rEl.innerHTML = '<p style="color:#718096;font-size:0.9rem">No ratings yet.</p>'; return; }
+    rEl.innerHTML = ratings.map(r => `
+      <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--accent)">${'★'.repeat(r.score)}${'☆'.repeat(5-r.score)}</span>
+        <span style="font-size:0.82rem;color:#718096;margin-left:8px">${KM.formatDate(r.created_at)}</span>
+        ${r.review ? `<p style="font-size:0.88rem;color:#4a5568;margin-top:4px">"${KM.escHtml(r.review)}"</p>` : ''}
+      </div>`).join('');
+  } catch {}
+}
+
+// ─── Auth Flow ─────────────────────────────────────────────────────────────
+
+async function doSendOTP() {
+  const phone = document.getElementById('auth-phone').value.trim();
+  const name  = document.getElementById('auth-name').value.trim();
+  if (!phone) return KM.showAlert('auth-alert', 'Phone number is required', 'error');
+  if (!name)  return KM.showAlert('auth-alert', 'Name is required for registration', 'error');
+
+  const btn = document.getElementById('btn-send-otp');
+  KM.setLoading(btn, true);
+  try {
+    const data = await KM.sendOTP(phone, name, 'worker');
+    document.getElementById('auth-phone-display').textContent = phone;
+    document.getElementById('auth-step-phone').style.display  = 'none';
+    document.getElementById('auth-step-otp').style.display    = '';
+    if (data.demo_otp) {
+      const hint = document.getElementById('demo-otp-hint');
+      hint.style.display = '';
+      hint.textContent   = `Demo Mode — OTP: ${data.demo_otp}`;
+    }
+  } catch (err) {
+    KM.showAlert('auth-alert', err.message, 'error');
+  } finally {
+    KM.setLoading(btn, false);
+  }
+}
+
+async function doVerifyOTP() {
+  const otp   = document.getElementById('auth-otp').value.trim();
+  const phone = document.getElementById('auth-phone').value.trim();
+  if (!otp || otp.length !== 6) return KM.showAlert('auth-otp-alert', 'Enter the 6-digit OTP', 'error');
+
+  const btn = document.getElementById('btn-verify-otp');
+  KM.setLoading(btn, true);
+  try {
+    const data = await KM.verifyOTP(phone, otp);
+    if (!data.user.has_profile) {
+      // Show profile setup step
+      document.getElementById('auth-step-otp').style.display     = 'none';
+      document.getElementById('auth-step-profile').style.display = '';
+      KM.loadCategories(document.getElementById('prof-category'));
+    } else {
+      KM.hideModal('auth-modal');
+      KM.updateNavbar();
+      init();
+    }
+  } catch (err) {
+    KM.showAlert('auth-otp-alert', err.message, 'error');
+  } finally {
+    KM.setLoading(btn, false);
+  }
+}
+
+async function saveWorkerProfile() {
+  const category = document.getElementById('prof-category').value;
+  const rate     = document.getElementById('prof-rate').value;
+  const bio      = document.getElementById('prof-bio').value.trim();
+  const phone    = document.getElementById('auth-phone').value.trim();
+
+  if (!category) return KM.showAlert('auth-profile-alert', 'Please select a category', 'error');
+  if (!rate || parseFloat(rate) < 1) return KM.showAlert('auth-profile-alert', 'Enter your daily rate', 'error');
+
+  const btn = document.getElementById('btn-save-profile');
+  KM.setLoading(btn, true);
+  try {
+    await KM.apiCall('POST', '/auth/register-worker', { phone, category, daily_rate: rate, bio }, false);
+    KM.hideModal('auth-modal');
+    KM.updateNavbar();
+    init();
+  } catch (err) {
+    KM.showAlert('auth-profile-alert', err.message, 'error');
+  } finally {
+    KM.setLoading(btn, false);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
