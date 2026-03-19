@@ -12,7 +12,7 @@ const { v4: uuidv4 } = require('uuid');
 const router  = express.Router();
 
 const { getDb, runQuery, getRow, getAll } = require('../db/setup');
-const { sendSMS, sendAdminNotification, formatIndianPhone } = require('../utils/sms');
+const { sendSMS, sendAdminNotification, formatIndianPhone, generateOTP } = require('../utils/sms');
 
 // POST /sms/webhook - Twilio SMS webhook (handles keypad phone replies)
 router.post('/webhook', async (req, res) => {
@@ -59,27 +59,63 @@ router.post('/webhook', async (req, res) => {
         const job = await getRow(db, 'SELECT * FROM jobs WHERE id=? AND status="open"', [record.job_id]);
         if (job) {
           // Find the worker's user record
-          const worker = await getRow(db, 'SELECT id FROM users WHERE phone=?', [from]);
+          const worker = await getRow(db, 'SELECT id, name FROM users WHERE phone=?', [from]);
           if (worker) {
+            const startOtp = generateOTP();
+            // Atomic assignment
             await runQuery(db,
-              'UPDATE jobs SET status="assigned", assigned_worker=? WHERE id=? AND status="open"',
-              [worker.id, record.job_id]);
+              'UPDATE jobs SET status="assigned", assigned_worker=?, start_otp=? WHERE id=? AND status="open"',
+              [worker.id, startOtp, record.job_id]);
+
+            // Create/update job_applications record so the worker can manage the job in-app
+            const existingApp = await getRow(db,
+              'SELECT id FROM job_applications WHERE job_id=? AND worker_id=?',
+              [record.job_id, worker.id]);
+            if (existingApp) {
+              await runQuery(db,
+                'UPDATE job_applications SET status="accepted" WHERE job_id=? AND worker_id=?',
+                [record.job_id, worker.id]);
+            } else {
+              await runQuery(db,
+                'INSERT INTO job_applications (id, job_id, worker_id, status) VALUES (?,?,?,?)',
+                [uuidv4(), record.job_id, worker.id, 'accepted']);
+            }
+
+            // Reject other applications for this job
+            await runQuery(db,
+              'UPDATE job_applications SET status="filled" WHERE job_id=? AND worker_id!=?',
+              [record.job_id, worker.id]);
+
+            // Notify customer with start OTP
+            const customer = await getRow(db, 'SELECT name, phone FROM users WHERE id=?', [job.customer_id]);
+            if (customer) {
+              sendSMS(customer.phone,
+                `Great news! ${record.name} has accepted your job "${job.title}" via SMS. ` +
+                `Job Start OTP: ${startOtp}. Share this OTP when the worker arrives.`
+              ).catch(() => {});
+            }
+
+            replyText = `Thank you ${record.name}! Job accepted. Please go to: ${job.address || 'the job location'}. The customer has your start OTP.`;
+          } else {
+            replyText = `Thank you ${record.name}! Confirmed. Please go to the job location.`;
           }
+        } else {
+          replyText = `Sorry ${record.name}, this job is no longer available. We'll send you the next one!`;
         }
+      } else {
+        replyText = `Thank you ${record.name}! Your confirmation has been received.`;
       }
 
       // Notify admin
       sendAdminNotification(`CONFIRMED: ${record.name} (${from}) confirmed via SMS.`)
         .catch(() => {});
 
-      // Notify original sender (e.g., customer who posted job)
-      if (record.sender_phone) {
+      // Notify original sender if no job_id (legacy flow)
+      if (!record.job_id && record.sender_phone) {
         sendSMS(record.sender_phone,
           `UPDATE: ${record.name} has confirmed your job request! They are on their way.`
         ).catch(() => {});
       }
-
-      replyText = `Thank you ${record.name}! Your confirmation has been received. Please go to the job location.`;
     } else if (messageBody === 'NO' || messageBody === '2') {
       replyText = `Hi ${record.name}, job declined. We'll notify another worker.`;
     } else {

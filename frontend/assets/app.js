@@ -45,14 +45,40 @@ async function apiCall(method, path, body = null, auth = true) {
   }
 }
 
+// ─── Toast Notifications ─────────────────────────────────────────────────────
+
+function getToastContainer() {
+  let el = document.getElementById('toast-container');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast-container';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+function showToast(message, type = 'info', duration = 4000) {
+  const container = getToastContainer();
+  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <span class="toast-icon">${icons[type] || 'ℹ️'}</span>
+    <span>${message}</span>
+    <button class="toast-close" onclick="this.closest('.toast').remove()">×</button>`;
+  container.appendChild(toast);
+  setTimeout(() => { toast.classList.add('toast-hide'); setTimeout(() => toast.remove(), 300); }, duration);
+  return toast;
+}
+
 // ─── UI Helpers ──────────────────────────────────────────────────────────────
 
 function showAlert(elId, message, type = 'success') {
   const el = document.getElementById(elId);
-  if (!el) return;
-  el.textContent = message;
-  el.className   = `alert alert-${type} show`;
-  setTimeout(() => el.classList.remove('show'), 5000);
+  if (!el) { showToast(message, type); return; }
+  el.innerHTML = `<span>${message}</span>`;
+  el.className = `alert alert-${type} show`;
+  setTimeout(() => { if (el) { el.classList.remove('show'); el.innerHTML = ''; } }, 6000);
 }
 
 function setLoading(btn, loading) {
@@ -68,23 +94,41 @@ function setLoading(btn, loading) {
 }
 
 function renderStars(rating, count = 0) {
-  const full  = Math.round(rating);
-  const stars = '★'.repeat(full) + '☆'.repeat(5 - full);
-  return `<span class="stars">${stars}</span> <span style="font-size:0.8rem;color:#718096">(${count})</span>`;
+  const val   = parseFloat(rating) || 0;
+  const full  = Math.round(val);
+  const stars = '★'.repeat(Math.max(0, full)) + '☆'.repeat(Math.max(0, 5 - full));
+  const countStr = count > 0 ? `(${count})` : '';
+  return `<span class="stars">${stars}</span> <span style="font-size:0.8rem;color:var(--text-light)">${val > 0 ? val.toFixed(1) : ''} ${countStr}</span>`;
 }
 
 function formatRank(rank) {
-  return `<span class="rank-badge rank-${rank}">${rank}</span>`;
+  return `<span class="rank-badge rank-${rank || 'Bronze'}">${rank || 'Bronze'}</span>`;
 }
 
 function statusBadge(status) {
-  const labels = { open: 'Open', assigned: 'Assigned', in_progress: 'In Progress', completed: 'Completed', cancelled: 'Cancelled' };
+  const labels = {
+    open: '🟢 Open',
+    assigned: '🟡 Assigned',
+    in_progress: '🔵 In Progress',
+    completed: '✅ Completed',
+    cancelled: '🔴 Cancelled',
+    pending: '🔔 Pending',
+  };
   return `<span class="badge badge-${status}">${labels[status] || status}</span>`;
 }
 
 function formatDate(ts) {
   if (!ts) return '';
   return new Date(ts * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatRelative(ts) {
+  if (!ts) return '';
+  const diff = Date.now() / 1000 - ts;
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return formatDate(ts);
 }
 
 // ─── Tab Switching ────────────────────────────────────────────────────────────
@@ -104,7 +148,10 @@ function initTabs(container) {
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
 
-function showModal(id) { document.getElementById(id)?.classList.add('show'); }
+function showModal(id) {
+  const el = document.getElementById(id);
+  if (el) { el.classList.add('show'); el.querySelector('input')?.focus(); }
+}
 function hideModal(id) { document.getElementById(id)?.classList.remove('show'); }
 
 // ─── Geolocation ─────────────────────────────────────────────────────────────
@@ -160,35 +207,37 @@ async function loadCategories(selectEl) {
 
 function renderWorkerCard(w) {
   const initial = (w.name || '?')[0].toUpperCase();
-  const dist    = w.distance_km !== undefined ? `📍 ${w.distance_km} km away` : '';
+  const dist    = w.distance_km !== undefined ? `📍 ${w.distance_km} km` : '';
+  const rating  = parseFloat(w.avg_rating) || 0;
   return `
-    <div class="worker-card">
+    <div class="worker-card animate-fadeInUp">
       <div class="worker-header">
         <div class="worker-avatar">${initial}</div>
         <div>
-          <div class="worker-name">${escHtml(w.name)} ${w.aadhaar_verified ? '✅' : ''}</div>
-          <div class="worker-category">${escHtml(w.category)}</div>
-          ${formatRank(w.rank_level)}
+          <div class="worker-name">${escHtml(w.name)} ${w.aadhaar_verified ? '<span title="Aadhaar Verified">✅</span>' : ''}</div>
+          <div class="worker-category">🔧 ${escHtml(w.category)}</div>
+          <div style="margin-top:4px">${formatRank(w.rank_level)}</div>
         </div>
       </div>
-      <div>${renderStars(w.avg_rating || 0, w.rating_count || 0)}</div>
-      <div class="worker-rate">₹${w.daily_rate}/day</div>
+      <div>${renderStars(rating, w.rating_count || 0)}</div>
+      <div class="worker-rate">₹${w.daily_rate}<span style="font-weight:400;font-size:0.82rem;color:var(--text-light)">/day</span></div>
       <div class="worker-distance">
-        <span class="availability-dot online"></span>Online
-        ${dist ? '&nbsp;·&nbsp;' + dist : ''}
-        ${w.total_jobs ? `&nbsp;·&nbsp;${w.total_jobs} jobs done` : ''}
+        <span class="availability-dot online"></span>
+        <span>Online</span>
+        ${dist ? `· ${dist}` : ''}
+        ${w.total_jobs ? `· ${w.total_jobs} jobs done` : ''}
       </div>
-      ${w.bio ? `<div style="font-size:0.85rem;color:#718096;margin-top:4px">"${escHtml(w.bio)}"</div>` : ''}
+      ${w.bio ? `<div style="font-size:0.84rem;color:var(--text-light);font-style:italic;border-top:1px solid var(--border);padding-top:10px;margin-top:2px">"${escHtml(w.bio)}"</div>` : ''}
     </div>`;
 }
 
 // ─── Job Card Renderer ────────────────────────────────────────────────────────
 
 function renderJobCard(j, role) {
-  const urgentTag = j.is_urgent ? '<span class="urgent-tag">🔴 URGENT</span> ' : '';
+  const urgentTag = j.is_urgent ? '<span class="urgent-tag">🔴 URGENT</span>' : '';
   return `
     <div class="job-card${j.is_urgent ? ' urgent' : ''}">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:6px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px">
         <div>
           ${urgentTag}
           <div class="job-title">${escHtml(j.title)}</div>
@@ -201,13 +250,9 @@ function renderJobCard(j, role) {
         ${j.address  ? `<span class="job-badge">📍 ${escHtml(j.address)}</span>` : ''}
         ${j.budget_max ? `<span class="job-badge">💰 ₹${j.budget_min || 0}–${j.budget_max}</span>` : ''}
         ${j.distance_km !== undefined ? `<span class="job-badge">📍 ${j.distance_km} km</span>` : ''}
-        <span class="job-badge">📅 ${formatDate(j.created_at)}</span>
+        <span class="job-badge">🕐 ${formatRelative(j.created_at)}</span>
       </div>
-      ${j.description ? `<div style="font-size:0.85rem;color:#718096;margin-top:8px">${escHtml(j.description)}</div>` : ''}
-      ${role === 'worker' && j.status === 'open' ? `
-        <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="acceptJobFromCard('${j.id}', this)">
-          ✅ Accept Job
-        </button>` : ''}
+      ${j.description ? `<div style="font-size:0.85rem;color:var(--text-light);margin-top:10px;line-height:1.5">${escHtml(j.description)}</div>` : ''}
     </div>`;
 }
 
@@ -233,7 +278,7 @@ function updateNavbar() {
   if (isLoggedIn() && currentUser) {
     if (loginBtn)  loginBtn.style.display  = 'none';
     if (logoutBtn) logoutBtn.style.display = 'inline-flex';
-    if (userInfo)  userInfo.textContent    = `Hi, ${currentUser.name.split(' ')[0]}`;
+    if (userInfo)  userInfo.textContent    = `👋 ${currentUser.name.split(' ')[0]}`;
   } else {
     if (loginBtn)  loginBtn.style.display  = '';
     if (logoutBtn) logoutBtn.style.display = 'none';
@@ -241,24 +286,48 @@ function updateNavbar() {
   }
 }
 
+// ─── Intersection Observer for Scroll Animations ─────────────────────────────
+
+function initScrollAnimations() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.animate-on-scroll').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    observer.observe(el);
+  });
+}
+
 // ─── Export to window ─────────────────────────────────────────────────────────
 
 window.KM = {
   API, apiCall, sendOTP, verifyOTP, clearAuth, isLoggedIn,
   currentUser: () => currentUser, currentToken: () => currentToken,
-  showAlert, setLoading, renderStars, formatRank, statusBadge, formatDate,
+  showAlert, showToast, setLoading,
+  renderStars, formatRank, statusBadge, formatDate, formatRelative,
   renderWorkerCard, renderJobCard, escHtml,
-  showModal, hideModal, initTabs, loadCategories, getUserLocation, updateNavbar,
+  showModal, hideModal, initTabs, loadCategories, getUserLocation,
+  updateNavbar, initScrollAnimations,
   pendingAuth: () => pendingAuth,
 };
 
 document.addEventListener('DOMContentLoaded', () => {
   updateNavbar();
+  initScrollAnimations();
 
   // Logout handler
   document.getElementById('nav-logout')?.addEventListener('click', () => {
     clearAuth();
-    window.location.href = '/';
+    showToast('You have been logged out', 'info', 2500);
+    setTimeout(() => { window.location.href = '/'; }, 800);
   });
 
   // Close modal on overlay click

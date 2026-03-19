@@ -7,20 +7,9 @@
   <meta name="description" content="KaamMitra connects daily wage workers with customers. Find verified plumbers, masons, electricians and more near you. Supports both smartphone and keypad phones."/>
   <link rel="stylesheet" href="/assets/style.css"/>
   <style>
-    .stats-bar { background: var(--primary-d); color: white; padding: 16px 20px; }
-    .stats-bar-inner { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; }
-    .stats-bar-item { text-align: center; }
-    .stats-bar-num  { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
-    .stats-bar-lbl  { font-size: 0.8rem; opacity: 0.85; }
-    .how-step { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 28px; }
-    .how-num  { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; flex-shrink: 0; }
-    .how-text h4 { font-size: 1rem; margin-bottom: 4px; }
-    .how-text p  { font-size: 0.9rem; color: var(--text-light); }
-    .category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
-    .category-chip { background: white; border-radius: var(--radius); padding: 14px 10px; text-align: center; box-shadow: var(--shadow); cursor: pointer; transition: transform 0.15s; font-size: 0.88rem; font-weight: 600; color: var(--text); }
-    .category-chip:hover { transform: translateY(-2px); color: var(--primary); }
-    .category-chip .emoji { font-size: 1.6rem; display: block; margin-bottom: 6px; }
-    .pricing-box { background: white; border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin-top: 16px; display: none; }
+    @media (max-width: 768px) {
+      .how-grid { grid-template-columns: 1fr !important; }
+    }
   </style>
 </head>
 <body>
@@ -42,15 +31,17 @@
 
 <!-- ─── Hero ─── -->
 <section class="hero">
-  <div class="container">
+  <div class="container hero-content">
+    <div class="hero-badge animate-fadeInDown">🇮🇳 Trusted Labour Marketplace · 16+ Categories</div>
     <h1>Find Trusted <span>Labour Workers</span><br/>Near You – Instantly</h1>
-    <p>Connect with verified daily wage workers in your area. Fair pricing, real-time dispatch, and even works on keypad phones via SMS.</p>
+    <p>Connect with verified daily wage workers in your area. Fair pricing, real-time dispatch, and works on keypad phones too — no internet required!</p>
     <div class="hero-btns">
       <a href="/customer.html" class="btn btn-accent">📋 Post a Job</a>
       <a href="/worker.html"   class="btn btn-white">👷 I'm a Worker</a>
-      <a href="/workers.html"  class="btn btn-outline" style="border-color:rgba(255,255,255,0.5);color:white;">🔍 Browse Workers</a>
+      <a href="/workers.html"  class="btn btn-ghost">🔍 Browse Workers</a>
     </div>
   </div>
+  <div class="hero-illustration" aria-hidden="true">🔨</div>
 </section>
 
 <!-- ─── Stats Bar ─── -->
@@ -59,7 +50,7 @@
     <div class="stats-bar-item"><div class="stats-bar-num" id="stat-workers">—</div><div class="stats-bar-lbl">Registered Workers</div></div>
     <div class="stats-bar-item"><div class="stats-bar-num" id="stat-jobs">—</div><div class="stats-bar-lbl">Jobs Completed</div></div>
     <div class="stats-bar-item"><div class="stats-bar-num">16+</div><div class="stats-bar-lbl">Job Categories</div></div>
-    <div class="stats-bar-item"><div class="stats-bar-num">📱+📞</div><div class="stats-bar-lbl">App & Keypad Support</div></div>
+    <div class="stats-bar-item"><div class="stats-bar-num">📱+📞</div><div class="stats-bar-lbl">App &amp; Keypad Support</div></div>
   </div>
 </div>
 
@@ -68,12 +59,12 @@
   <div class="container">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start" class="how-grid">
       <div>
-        <div class="section-title">How It Works</div>
+        <div class="section-title animate-on-scroll">How It Works</div>
         <div class="section-sub">Simple 4-step process to get work done</div>
-        <div class="how-step"><div class="how-num">1</div><div class="how-text"><h4>Post a Job</h4><p>Describe the work, select category, add your location and budget. Mark "Urgent" for priority dispatch.</p></div></div>
-        <div class="how-step"><div class="how-num">2</div><div class="how-text"><h4>Workers Get Notified</h4><p>Top 10 nearby workers are notified instantly – via app or SMS on keypad phones. First to accept wins.</p></div></div>
-        <div class="how-step"><div class="how-num">3</div><div class="how-text"><h4>OTP-Verified Start</h4><p>Worker arrives, you share a start OTP. Job begins securely. Completion also requires an OTP.</p></div></div>
-        <div class="how-step"><div class="how-num">4</div><div class="how-text"><h4>Rate & Pay</h4><p>After completion, rate the worker. Build digital history. Fair, dispute-free payments.</p></div></div>
+        <div class="how-step animate-on-scroll"><div class="how-num">1</div><div class="how-text"><h4>Post a Job</h4><p>Describe the work, select category, add your location and budget. Mark "Urgent" for priority dispatch.</p></div></div>
+        <div class="how-step animate-on-scroll delay-1"><div class="how-num">2</div><div class="how-text"><h4>Workers Get Notified</h4><p>Top 10 nearby workers are notified instantly – via app or SMS on keypad phones. First to accept wins.</p></div></div>
+        <div class="how-step animate-on-scroll delay-2"><div class="how-num">3</div><div class="how-text"><h4>OTP-Verified Start</h4><p>Worker arrives, you share a start OTP. Job begins securely. Completion also requires an OTP.</p></div></div>
+        <div class="how-step animate-on-scroll delay-3"><div class="how-num">4</div><div class="how-text"><h4>Rate &amp; Pay</h4><p>After completion, rate the worker. Build digital history. Fair, dispute-free payments.</p></div></div>
       </div>
 
       <!-- Keypad Phone Box -->
@@ -139,13 +130,15 @@
 </section>
 
 <!-- ─── CTA ─── -->
-<section class="section" style="background:var(--primary);color:white;text-align:center">
-  <div class="container">
-    <h2 style="font-size:2rem;color:white;margin-bottom:12px">Ready to Get Started?</h2>
-    <p style="opacity:0.9;max-width:500px;margin:0 auto 28px">Join thousands of workers and customers already using KaamMitra across India.</p>
+<section class="section" style="background:linear-gradient(135deg,var(--primary-d),var(--primary));color:white;text-align:center;position:relative;overflow:hidden">
+  <div style="position:absolute;inset:0;background:url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.04\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');pointer-events:none"></div>
+  <div class="container" style="position:relative">
+    <div style="font-size:3rem;margin-bottom:14px;animation:float 3s ease-in-out infinite">🚀</div>
+    <h2 style="font-size:2.2rem;font-weight:900;color:white;margin-bottom:12px">Ready to Get Started?</h2>
+    <p style="opacity:0.9;max-width:520px;margin:0 auto 32px;font-size:1.05rem">Join thousands of workers and customers already using KaamMitra across India.</p>
     <div class="hero-btns">
-      <a href="/customer.html" class="btn btn-accent">Post a Job Now</a>
-      <a href="/worker.html"   class="btn btn-white">Register as Worker</a>
+      <a href="/customer.html" class="btn btn-accent">📋 Post a Job Now</a>
+      <a href="/worker.html"   class="btn btn-white">👷 Register as Worker</a>
     </div>
   </div>
 </section>
