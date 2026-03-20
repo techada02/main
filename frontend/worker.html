@@ -129,10 +129,20 @@
       <p class="auth-subtitle">OTP sent to <strong id="auth-phone-display"></strong></p>
       <div id="auth-otp-alert" class="alert"></div>
 
+      <!-- Visual OTP boxes -->
       <div class="form-group">
-        <label>6-Digit OTP</label>
-        <input type="text" id="auth-otp" class="form-control otp-input" maxlength="6"
-               placeholder="• • • • • •" inputmode="numeric" autocomplete="one-time-code"/>
+        <label style="text-align:center;display:block">6-Digit OTP</label>
+        <div class="otp-boxes" id="otp-boxes">
+          <div class="otp-box" data-idx="0"></div>
+          <div class="otp-box" data-idx="1"></div>
+          <div class="otp-box" data-idx="2"></div>
+          <div class="otp-box" data-idx="3"></div>
+          <div class="otp-box" data-idx="4"></div>
+          <div class="otp-box" data-idx="5"></div>
+        </div>
+        <!-- Hidden real input for form submission -->
+        <input type="text" id="auth-otp" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px"
+               maxlength="6" inputmode="numeric" autocomplete="one-time-code"/>
       </div>
       <div id="demo-otp-hint" style="font-size:0.85rem;background:#fffbeb;border:1px solid #fde68a;color:#92400e;padding:10px 14px;border-radius:8px;margin-bottom:14px;display:none">
         🧪 <strong>Demo Mode</strong> — OTP: <span id="demo-otp-code" style="font-size:1.1rem;font-weight:800;letter-spacing:4px"></span>
@@ -142,7 +152,7 @@
         ✅ Verify OTP
       </button>
       <button class="btn btn-outline btn-block" style="margin-top:10px"
-              onclick="document.getElementById('auth-step-otp').style.display='none';document.getElementById('auth-step-phone').style.display='block'">
+              onclick="resetOTPBoxes();document.getElementById('auth-step-otp').style.display='none';document.getElementById('auth-step-phone').style.display='block'">
         ← Change Number
       </button>
     </div>
@@ -387,6 +397,8 @@ function showSection(name) {
   if (navId) document.getElementById(navId)?.classList.add('active');
 }
 
+let _refreshTimer = null;
+
 async function init() {
   if (KM.isLoggedIn()) {
     const user = KM.currentUser();
@@ -408,7 +420,15 @@ async function init() {
 
     await loadProfile();
     await loadAvailableJobs();
+
+    // Auto-refresh dispatched jobs every 30 seconds
+    if (_refreshTimer) clearInterval(_refreshTimer);
+    _refreshTimer = setInterval(() => {
+      const section = document.getElementById('section-available-jobs');
+      if (section && section.style.display !== 'none') loadAvailableJobs();
+    }, 30000);
   } else {
+    if (_refreshTimer) { clearInterval(_refreshTimer); _refreshTimer = null; }
     document.getElementById('dashboard').style.display = 'none';
     document.getElementById('login-prompt').style.display = '';
     document.getElementById('mobile-nav').style.display = 'none';
@@ -811,21 +831,67 @@ async function saveWorkerProfile() {
   }
 }
 
-// Auto-refresh available jobs every 60 seconds
-let refreshTimer;
-function startAutoRefresh() {
-  clearInterval(refreshTimer);
-  refreshTimer = setInterval(() => {
-    const jobSection = document.getElementById('section-available-jobs');
-    if (jobSection && jobSection.style.display !== 'none') {
-      loadAvailableJobs();
+// ─── OTP Visual Boxes ─────────────────────────────────────────────────────
+function initOTPBoxes(containerId, hiddenInputId) {
+  const container = document.getElementById(containerId);
+  const hidden    = document.getElementById(hiddenInputId);
+  if (!container || !hidden) return;
+
+  const boxes = container.querySelectorAll('.otp-box');
+  let digits   = Array(6).fill('');
+
+  function updateHidden() { hidden.value = digits.join(''); }
+  function renderBoxes() {
+    boxes.forEach((box, i) => {
+      box.textContent = digits[i] || '';
+      box.classList.toggle('filled',  !!digits[i]);
+      box.classList.toggle('active',  !digits[i] && digits.slice(0,i).every(Boolean));
+    });
+  }
+
+  // Click any box → focus hidden input
+  container.addEventListener('click', () => { hidden.focus(); });
+
+  hidden.addEventListener('input', (e) => {
+    const val = e.target.value.replace(/\D/g,'').slice(0,6);
+    digits = val.split('').concat(Array(6).fill('')).slice(0,6);
+    renderBoxes();
+    updateHidden();
+    // Auto-submit when 6 digits entered
+    if (val.length === 6) {
+      const verifyBtn = document.getElementById('btn-verify-otp');
+      if (verifyBtn && !verifyBtn.disabled) verifyBtn.focus();
     }
-  }, 60000);
+  });
+
+  hidden.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); doVerifyOTP(); }
+    if (e.key === 'Backspace') {
+      const val = hidden.value;
+      if (!val.length) { digits = Array(6).fill(''); renderBoxes(); updateHidden(); }
+    }
+  });
+
+  renderBoxes();
 }
 
-init().then(() => {
-  if (KM.isLoggedIn()) startAutoRefresh();
+function resetOTPBoxes() {
+  const hidden = document.getElementById('auth-otp');
+  if (hidden) hidden.value = '';
+  document.querySelectorAll('#otp-boxes .otp-box').forEach(b => {
+    b.textContent = '';
+    b.classList.remove('filled','active');
+  });
+  const first = document.querySelector('#otp-boxes .otp-box');
+  if (first) first.classList.add('active');
+}
+
+// Initialise OTP boxes when page loads
+document.addEventListener('DOMContentLoaded', () => {
+  initOTPBoxes('otp-boxes', 'auth-otp');
 });
+
+init();
 </script>
 </body>
 </html>

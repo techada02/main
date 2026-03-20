@@ -216,15 +216,16 @@ async function init() {
       } else {
         grid2.innerHTML = top.map(KM.renderWorkerCard).join('');
       }
-      document.getElementById('stat-workers').textContent = data.workers.length + '+';
     }
   } catch {}
 
-  // Load completed jobs count
+  // Load platform stats (public endpoint)
   try {
-    const jobs = await KM.apiCall('GET', '/jobs?status=completed', null, false);
-    const el = document.getElementById('stat-jobs');
-    if (el) el.textContent = jobs.jobs.length + '+';
+    const stats = await KM.apiCall('GET', '/stats', null, false);
+    const wEl = document.getElementById('stat-workers');
+    const jEl = document.getElementById('stat-jobs');
+    if (wEl) wEl.textContent = stats.worker_count > 0 ? stats.worker_count + '+' : '0';
+    if (jEl) jEl.textContent = stats.completed_jobs > 0 ? stats.completed_jobs + '+' : '0';
   } catch {}
 }
 

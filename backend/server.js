@@ -65,6 +65,30 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// ─── Public Platform Stats ───────────────────────────────────────────────────
+// Returns total verified worker count and completed job count.
+// No authentication required - used by the landing page stats bar.
+
+app.get('/api/stats', async (req, res) => {
+  try {
+    const { getDb, getRow } = require('./db/setup');
+    const db = getDb();
+    const [wRow, jRow] = await Promise.all([
+      getRow(db, 'SELECT COUNT(*) AS count FROM workers w JOIN users u ON u.id=w.user_id WHERE u.is_verified=1'),
+      getRow(db, "SELECT COUNT(*) AS count FROM jobs WHERE status='completed'"),
+    ]);
+    db.close();
+    res.json({
+      success: true,
+      worker_count:     (wRow && wRow.count) || 0,
+      completed_jobs:   (jRow && jRow.count) || 0,
+    });
+  } catch (err) {
+    console.error('/api/stats error:', err);
+    res.status(500).json({ error: 'Failed to get stats' });
+  }
+});
+
 // ─── Pricing Suggestion (market-based) ──────────────────────────────────────
 
 app.get('/api/pricing/:category', async (req, res) => {

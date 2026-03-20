@@ -85,9 +85,17 @@
       <p class="auth-subtitle">OTP sent to <strong id="auth-phone-display"></strong></p>
       <div id="auth-otp-alert" class="alert"></div>
       <div class="form-group">
-        <label>6-Digit OTP</label>
-        <input type="text" id="auth-otp" class="form-control otp-input" maxlength="6"
-               placeholder="• • • • • •" inputmode="numeric" autocomplete="one-time-code"/>
+        <label style="text-align:center;display:block">6-Digit OTP</label>
+        <div class="otp-boxes" id="otp-boxes">
+          <div class="otp-box" data-idx="0"></div>
+          <div class="otp-box" data-idx="1"></div>
+          <div class="otp-box" data-idx="2"></div>
+          <div class="otp-box" data-idx="3"></div>
+          <div class="otp-box" data-idx="4"></div>
+          <div class="otp-box" data-idx="5"></div>
+        </div>
+        <input type="text" id="auth-otp" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px"
+               maxlength="6" inputmode="numeric" autocomplete="one-time-code"/>
       </div>
       <div id="demo-otp-hint" style="font-size:0.85rem;background:#fffbeb;border:1px solid #fde68a;color:#92400e;padding:10px 14px;border-radius:8px;margin-bottom:14px;display:none">
         🧪 <strong>Demo Mode</strong> — OTP: <span id="demo-otp-code" style="font-size:1.1rem;font-weight:800;letter-spacing:4px"></span>
@@ -96,7 +104,7 @@
         ✅ Verify OTP
       </button>
       <button class="btn btn-outline btn-block" style="margin-top:10px"
-              onclick="document.getElementById('auth-step-otp').style.display='none';document.getElementById('auth-step-phone').style.display='block'">
+              onclick="resetOTPBoxes();document.getElementById('auth-step-otp').style.display='none';document.getElementById('auth-step-phone').style.display='block'">
         ← Change Number
       </button>
     </div>
@@ -294,6 +302,38 @@
   </div>
 </footer>
 
+<!-- ─── Rating Modal ─── -->
+<div class="modal-overlay" id="rating-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="KM.hideModal('rating-modal')">×</button>
+    <div class="auth-step-icon">⭐</div>
+    <div class="modal-title" style="text-align:center">Rate Your Worker</div>
+    <p class="auth-subtitle" id="rating-worker-name">How was your experience?</p>
+    <div id="rating-alert" class="alert"></div>
+    <input type="hidden" id="rating-job-id"/>
+
+    <!-- Star selector -->
+    <div style="text-align:center;margin-bottom:20px">
+      <div id="star-selector" style="display:flex;gap:6px;justify-content:center;font-size:2.5rem;cursor:pointer">
+        <span class="star-btn" data-val="1" onclick="selectStar(1)" style="transition:transform 0.15s">☆</span>
+        <span class="star-btn" data-val="2" onclick="selectStar(2)" style="transition:transform 0.15s">☆</span>
+        <span class="star-btn" data-val="3" onclick="selectStar(3)" style="transition:transform 0.15s">☆</span>
+        <span class="star-btn" data-val="4" onclick="selectStar(4)" style="transition:transform 0.15s">☆</span>
+        <span class="star-btn" data-val="5" onclick="selectStar(5)" style="transition:transform 0.15s">☆</span>
+      </div>
+      <div id="star-label" style="font-size:0.88rem;color:var(--text-light);margin-top:8px">Tap to rate</div>
+    </div>
+
+    <div class="form-group">
+      <label>Leave a Review (optional)</label>
+      <textarea id="rating-review" class="form-control" rows="3" placeholder="Share your experience with this worker..."></textarea>
+    </div>
+    <button class="btn btn-primary btn-block" id="btn-submit-rating" onclick="submitRating()">
+      ⭐ Submit Rating
+    </button>
+  </div>
+</div>
+
 <!-- Mobile Nav -->
 <nav class="mobile-nav" id="mobile-nav" style="display:none">
   <div class="mobile-nav-inner">
@@ -483,12 +523,97 @@ async function loadMyJobs() {
         </div>`;
       return;
     }
-    el.innerHTML = data.jobs.map(j => `
-      <div style="margin-bottom:14px">
-        ${KM.renderJobCard(j, 'customer')}
-      </div>`).join('');
+    el.innerHTML = data.jobs.map(j => renderCustomerJobCard(j)).join('');
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error show">${KM.escHtml(err.message)}</div>`;
+  }
+}
+
+function renderCustomerJobCard(j) {
+  const workerInfo = j.worker_name
+    ? `<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f0fdf4;border-radius:8px;margin-top:10px">
+        <span style="font-size:1.2rem">👷</span>
+        <div>
+          <div style="font-weight:700;font-size:0.9rem">${KM.escHtml(j.worker_name)}</div>
+          <div style="font-size:0.78rem;color:var(--text-light)">Assigned Worker</div>
+        </div>
+      </div>` : '';
+
+  const safeJobId = KM.escHtml(j.id);
+  const rateBtn = (j.status === 'completed' && j.worker_name && !j.has_rated)
+    ? `<button class="btn btn-accent btn-sm" onclick="openRatingModal('${safeJobId}','${KM.escHtml(j.worker_name)}')">
+        ⭐ Rate Worker
+      </button>`
+    : (j.status === 'completed' && j.has_rated)
+    ? `<span style="font-size:0.83rem;color:var(--success);font-weight:600">✅ Rated</span>` : '';
+
+  return `
+    <div style="margin-bottom:14px">
+      <div class="job-card${j.is_urgent ? ' urgent' : ''}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+          <div>
+            ${j.is_urgent ? '<span class="urgent-tag">🔴 URGENT</span>' : ''}
+            <div class="job-title">${KM.escHtml(j.title)}</div>
+            <span class="job-category">${KM.escHtml(j.category)}</span>
+          </div>
+          ${KM.statusBadge(j.status)}
+        </div>
+        <div class="job-meta">
+          ${j.job_type ? `<span class="job-badge">⏱ ${j.job_type.replace('_',' ')}</span>` : ''}
+          ${j.address  ? `<span class="job-badge">📍 ${KM.escHtml(j.address)}</span>` : ''}
+          ${j.budget_max ? `<span class="job-badge">💰 ₹${j.budget_min||0}–${j.budget_max}</span>` : ''}
+          <span class="job-badge">🕐 ${KM.formatRelative(j.created_at)}</span>
+        </div>
+        ${workerInfo}
+        ${rateBtn ? `<div style="margin-top:12px">${rateBtn}</div>` : ''}
+      </div>
+    </div>`;
+}
+
+// ─── Rating modal ─────────────────────────────────────────────────────────
+let selectedStars = 0;
+const STAR_LABELS = { 1: '⭐ Poor', 2: '⭐⭐ Fair', 3: '⭐⭐⭐ Good', 4: '⭐⭐⭐⭐ Very Good', 5: '⭐⭐⭐⭐⭐ Excellent!' };
+
+function openRatingModal(jobId, workerName) {
+  selectedStars = 0;
+  document.getElementById('rating-job-id').value = jobId;
+  document.getElementById('rating-worker-name').textContent = `Rating: ${workerName}`;
+  document.getElementById('rating-review').value = '';
+  document.getElementById('rating-alert').className = 'alert';
+  document.getElementById('rating-alert').innerHTML = '';
+  renderStars(0);
+  KM.showModal('rating-modal');
+}
+
+function selectStar(val) {
+  selectedStars = val;
+  renderStars(val);
+  document.getElementById('star-label').textContent = STAR_LABELS[val] || '';
+}
+
+function renderStars(val) {
+  document.querySelectorAll('.star-btn').forEach((el, i) => {
+    el.textContent = i < val ? '★' : '☆';
+    el.style.color = i < val ? 'var(--accent)' : 'var(--text-light)';
+    el.style.transform = i < val ? 'scale(1.15)' : 'scale(1)';
+  });
+}
+
+async function submitRating() {
+  if (!selectedStars) return KM.showAlert('rating-alert', 'Please select a star rating', 'error');
+  const jobId  = document.getElementById('rating-job-id').value;
+  const review = document.getElementById('rating-review').value.trim();
+  const btn    = document.getElementById('btn-submit-rating');
+  KM.setLoading(btn, true);
+  try {
+    await KM.apiCall('POST', `/jobs/${jobId}/rate`, { score: selectedStars, review });
+    KM.hideModal('rating-modal');
+    KM.showToast('⭐ Rating submitted! Thank you for your feedback.', 'success', 4000);
+    loadMyJobs(); // refresh jobs list
+  } catch (err) {
+    KM.showAlert('rating-alert', err.message, 'error');
+  } finally {
+    KM.setLoading(btn, false);
   }
 }
 
@@ -508,6 +633,62 @@ async function loadPricingInfo() {
     box.style.display = 'none';
   }
 }
+
+// ─── OTP Visual Boxes ─────────────────────────────────────────────────────
+function initOTPBoxes(containerId, hiddenInputId) {
+  const container = document.getElementById(containerId);
+  const hidden    = document.getElementById(hiddenInputId);
+  if (!container || !hidden) return;
+
+  const boxes = container.querySelectorAll('.otp-box');
+  let digits   = Array(6).fill('');
+
+  function updateHidden() { hidden.value = digits.join(''); }
+  function renderBoxes() {
+    boxes.forEach((box, i) => {
+      box.textContent = digits[i] || '';
+      box.classList.toggle('filled',  !!digits[i]);
+      box.classList.toggle('active',  !digits[i] && digits.slice(0,i).every(Boolean));
+    });
+  }
+
+  container.addEventListener('click', () => { hidden.focus(); });
+
+  hidden.addEventListener('input', (e) => {
+    const val = e.target.value.replace(/\D/g,'').slice(0,6);
+    digits = val.split('').concat(Array(6).fill('')).slice(0,6);
+    renderBoxes();
+    updateHidden();
+    if (val.length === 6) {
+      const verifyBtn = document.getElementById('btn-verify-otp');
+      if (verifyBtn && !verifyBtn.disabled) verifyBtn.focus();
+    }
+  });
+
+  hidden.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); doVerifyOTP(); }
+    if (e.key === 'Backspace' && !hidden.value.length) {
+      digits = Array(6).fill(''); renderBoxes(); updateHidden();
+    }
+  });
+
+  renderBoxes();
+}
+
+function resetOTPBoxes() {
+  const hidden = document.getElementById('auth-otp');
+  if (hidden) hidden.value = '';
+  document.querySelectorAll('#otp-boxes .otp-box').forEach(b => {
+    b.textContent = '';
+    b.classList.remove('filled','active');
+  });
+  const first = document.querySelector('#otp-boxes .otp-box');
+  if (first) first.classList.add('active');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initOTPBoxes('otp-boxes', 'auth-otp');
+});
 
 init();
 </script>

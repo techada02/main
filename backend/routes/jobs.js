@@ -151,9 +151,11 @@ router.get('/my', authMiddleware, async (req, res) => {
   try {
     const db   = getDb();
     const jobs = await getAll(db, `
-      SELECT j.*, u.name AS worker_name
+      SELECT j.*, u.name AS worker_name,
+             CASE WHEN r.id IS NOT NULL THEN 1 ELSE 0 END AS has_rated
       FROM jobs j
       LEFT JOIN users u ON u.id=j.assigned_worker
+      LEFT JOIN ratings r ON r.job_id=j.id AND r.rater_id=j.customer_id
       WHERE j.customer_id=?
       ORDER BY j.created_at DESC`, [req.user.id]);
     db.close();
