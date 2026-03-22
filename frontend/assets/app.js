@@ -188,11 +188,11 @@ async function verifyOTP(phone, otp) {
 
 // ─── Load Categories ──────────────────────────────────────────────────────────
 
-async function loadCategories(selectEl) {
+async function loadCategories(selectEl, placeholder = '-- Select Category --') {
   try {
     const data = await apiCall('GET', '/categories', null, false);
     if (selectEl) {
-      selectEl.innerHTML = '<option value="">-- Select Category --</option>';
+      selectEl.innerHTML = `<option value="">${placeholder}</option>`;
       data.categories.forEach(cat => {
         const opt = document.createElement('option');
         opt.value = cat; opt.textContent = cat;

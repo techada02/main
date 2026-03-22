@@ -170,7 +170,7 @@
 let userLat = null, userLng = null;
 
 async function init() {
-  KM.loadCategories(document.getElementById('filter-category'));
+  KM.loadCategories(document.getElementById('filter-category'), '-- All Categories --');
   // Try to get location silently
   try {
     const loc = await KM.getUserLocation();
