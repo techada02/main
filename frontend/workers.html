@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>KaamMitra – Browse Workers</title>
+  <meta name="description" content="Find verified daily wage workers near you — plumbers, masons, electricians and more. Filter by category, distance and rating."/>
+  <link rel="stylesheet" href="/assets/style.css"/>
+  <style>
+    .filter-bar { background: white; border-radius: var(--radius-lg); padding: 22px 24px; box-shadow: var(--shadow); margin-bottom: 24px; }
+    .filter-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+    .filter-field { flex: 1; min-width: 160px; }
+    .filter-field label { font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 5px; color: var(--text); }
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: white;
+      border-top: 1px solid var(--border);
+      z-index: 50;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+    }
+    .mobile-nav-inner { display: flex; }
+    .mobile-nav-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      padding: 10px 4px; gap: 3px; background: none; border: none;
+      cursor: pointer; font-size: 0.7rem; font-weight: 600;
+      color: var(--text-light); transition: color 0.15s;
+    }
+    .mobile-nav-btn.active { color: var(--primary); }
+    .mobile-nav-btn span { font-size: 1.4rem; }
+    @media (max-width: 768px) {
+      .mobile-nav { display: block; }
+      body { padding-bottom: 72px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── Navbar ─── -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="brand">🔨 Kaam<span>Mitra</span></a>
+    <ul class="nav-links">
+      <li><a href="/customer.html">Post a Job</a></li>
+      <li><a href="/worker.html">Worker Login</a></li>
+      <li><span id="nav-user" style="color:rgba(255,255,255,0.8);font-size:0.88rem;"></span></li>
+      <li><a href="/customer.html" id="nav-login" class="btn-nav">Post a Job</a></li>
+      <li><button id="nav-logout" class="btn btn-sm" style="display:none;background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);">Logout</button></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ─── Page Header ─── -->
+<div class="page-header">
+  <div class="container" style="position:relative;z-index:1">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+      <div>
+        <div class="hero-badge animate-fadeInDown" style="margin-bottom:12px">
+          👷 Verified Workers · All Trades
+        </div>
+        <h1 style="font-size:2rem;font-weight:900;margin-bottom:8px">Browse Skilled Workers</h1>
+        <p style="opacity:0.88;font-size:0.95rem">Find rated professionals near you. Filter by category, distance or rating.</p>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <a href="/customer.html" class="btn btn-accent">📋 Post a Job</a>
+        <a href="/" class="btn btn-ghost btn-sm">← Home</a>
+      </div>
+    </div>
+
+    <!-- Quick stats -->
+    <div style="display:flex;gap:24px;margin-top:20px;flex-wrap:wrap">
+      <div style="text-align:center">
+        <div style="font-size:1.5rem;font-weight:900;color:var(--accent)" id="stat-total">—</div>
+        <div style="font-size:0.75rem;opacity:0.7">Total Workers</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:1.5rem;font-weight:900;color:var(--accent)" id="stat-available">—</div>
+        <div style="font-size:0.75rem;opacity:0.7">Available Now</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:1.5rem;font-weight:900;color:var(--accent)">16+</div>
+        <div style="font-size:0.75rem;opacity:0.7">Job Categories</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container" style="padding-top:28px;padding-bottom:48px">
+
+  <!-- Filter Bar -->
+  <div class="filter-bar animate-fadeInUp">
+    <div class="filter-row">
+      <div class="filter-field">
+        <label>Category</label>
+        <select id="filter-category" class="form-control">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>Max Distance (km)</label>
+        <select id="filter-radius" class="form-control">
+          <option value="">Any</option>
+          <option value="2">Within 2 km</option>
+          <option value="5" selected>Within 5 km</option>
+          <option value="10">Within 10 km</option>
+          <option value="20">Within 20 km</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>Sort By</label>
+        <select id="filter-sort" class="form-control">
+          <option value="rank">Rank &amp; Points</option>
+          <option value="rating">Rating</option>
+          <option value="distance">Distance</option>
+          <option value="rate_low">Rate: Low → High</option>
+          <option value="rate_high">Rate: High → Low</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:0.82rem;font-weight:600;display:block;margin-bottom:5px;color:var(--text)">&#8203;</label>
+        <button class="btn btn-primary" onclick="searchWorkers()">🔍 Search</button>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" onclick="useMyLocation()">📍 Use My Location</button>
+      <span id="location-status" style="font-size:0.82rem;color:#718096"></span>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="search-alert"></div>
+  <div id="results-header" style="font-size:0.88rem;color:#718096;margin-bottom:16px;font-weight:600"></div>
+  <div class="card-grid" id="workers-grid">
+    <div style="text-align:center;color:#718096;padding:60px;grid-column:1/-1">
+      <div style="font-size:3rem;margin-bottom:14px;animation:float 3s ease-in-out infinite">👷</div>
+      <p style="margin-bottom:16px">Use the filters above to find workers near you.</p>
+      <button class="btn btn-primary" onclick="searchWorkers()">Show All Workers</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Footer ─── -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-bottom">&copy; 2025 KaamMitra</div>
+  </div>
+</footer>
+
+<!-- Mobile Nav -->
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <button class="mobile-nav-btn" onclick="window.location.href='/'">
+      <span>🏠</span>Home
+    </button>
+    <button class="mobile-nav-btn active" onclick="searchWorkers()">
+      <span>👷</span>Workers
+    </button>
+    <button class="mobile-nav-btn" onclick="window.location.href='/customer.html'">
+      <span>📋</span>Post Job
+    </button>
+    <button class="mobile-nav-btn" onclick="window.location.href='/worker.html'">
+      <span>🔑</span>Login
+    </button>
+  </div>
+</nav>
+
+<script src="/assets/app.js"></script>
+<script>
+let userLat = null, userLng = null;
+
+async function init() {
+  KM.loadCategories(document.getElementById('filter-category'), '-- All Categories --');
+  // Try to get location silently
+  try {
+    const loc = await KM.getUserLocation();
+    userLat = loc.lat; userLng = loc.lng;
+    document.getElementById('location-status').textContent = `📍 Location detected`;
+  } catch {}
+  await searchWorkers();
+}
+
+async function useMyLocation() {
+  const btn = document.querySelector('[onclick="useMyLocation()"]');
+  KM.setLoading(btn, true);
+  try {
+    const loc = await KM.getUserLocation();
+    userLat = loc.lat; userLng = loc.lng;
+    document.getElementById('location-status').textContent = `✅ Location: ${loc.lat.toFixed(3)}, ${loc.lng.toFixed(3)}`;
+    await searchWorkers();
+  } catch {
+    document.getElementById('location-status').textContent = '❌ Location access denied';
+  } finally {
+    KM.setLoading(btn, false);
+  }
+}
+
+async function searchWorkers() {
+  const category = document.getElementById('filter-category').value;
+  const radius   = document.getElementById('filter-radius').value || 50;
+  const sortBy   = document.getElementById('filter-sort').value;
+  const grid     = document.getElementById('workers-grid');
+
+  grid.innerHTML = `<div style="text-align:center;padding:60px;grid-column:1/-1">
+    <span class="spinner spinner-dark" style="border-color:rgba(26,107,60,0.2);border-top-color:var(--primary);width:36px;height:36px;border-width:3px"></span>
+    <p style="margin-top:14px;color:var(--text-light)">Finding workers...</p>
+  </div>`;
+
+  let url = '/workers?';
+  if (category) url += `category=${encodeURIComponent(category)}&`;
+  if (userLat && userLng) url += `lat=${userLat}&lng=${userLng}&radius=${radius}&`;
+
+  try {
+    const data = await KM.apiCall('GET', url.slice(0,-1), null, false);
+    let workers = data.workers || [];
+
+    // Update stats
+    const totalEl = document.getElementById('stat-total');
+    const availEl = document.getElementById('stat-available');
+    if (totalEl) totalEl.textContent = workers.length;
+    if (availEl) availEl.textContent = workers.filter(w => w.is_available).length;
+
+    // Sort
+    if (sortBy === 'rating')    workers = [...workers].sort((a,b) => (b.avg_rating||0) - (a.avg_rating||0));
+    if (sortBy === 'distance')  workers = [...workers].sort((a,b) => (a.distance_km||99) - (b.distance_km||99));
+    if (sortBy === 'rate_low')  workers = [...workers].sort((a,b) => a.daily_rate - b.daily_rate);
+    if (sortBy === 'rate_high') workers = [...workers].sort((a,b) => b.daily_rate - a.daily_rate);
+
+    const header = document.getElementById('results-header');
+    if (header) header.textContent = workers.length ? `Showing ${workers.length} worker(s)` : '';
+
+    if (!workers.length) {
+      grid.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1">
+          <span class="empty-state-icon">🤔</span>
+          <h3>No workers found</h3>
+          <p>Try expanding your search radius or selecting a different category.</p>
+          <button class="btn btn-outline" onclick="document.getElementById('filter-radius').value='';searchWorkers()">Show All</button>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = workers.map(w => KM.renderWorkerCard(w)).join('');
+  } catch (err) {
+    grid.innerHTML = `<div class="alert alert-error show" style="grid-column:1/-1">⚠️ ${KM.escHtml(err.message)}</div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

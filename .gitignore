@@ -1,0 +1,5 @@
+node_modules/
+backend/db/marketplace.db
+backend/.env
+*.log
+.DS_Store

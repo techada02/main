@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>KaamMitra – Hire Daily Labour Workers Near You</title>
+  <meta name="description" content="KaamMitra connects daily wage workers with customers. Find verified plumbers, masons, electricians and more near you. Supports both smartphone and keypad phones."/>
+  <link rel="stylesheet" href="/assets/style.css"/>
+  <style>
+    @media (max-width: 768px) {
+      .how-grid { grid-template-columns: 1fr !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── Navbar ─── -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="brand">🔨 Kaam<span>Mitra</span></a>
+    <ul class="nav-links">
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#categories">Categories</a></li>
+      <li><a href="/workers.html">Find Workers</a></li>
+      <li><span id="nav-user" style="color:rgba(255,255,255,0.8);font-size:0.88rem;"></span></li>
+      <li><a href="/customer.html" id="nav-login" class="btn-nav">Post a Job</a></li>
+      <li><button id="nav-logout" class="btn btn-sm" style="display:none;background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);">Logout</button></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ─── Hero ─── -->
+<section class="hero">
+  <div class="container hero-content">
+    <div class="hero-badge animate-fadeInDown">🇮🇳 Trusted Labour Marketplace · 16+ Categories</div>
+    <h1>Find Trusted <span>Labour Workers</span><br/>Near You – Instantly</h1>
+    <p>Connect with verified daily wage workers in your area. Fair pricing, real-time dispatch, and works on keypad phones too — no internet required!</p>
+    <div class="hero-btns">
+      <a href="/customer.html" class="btn btn-accent">📋 Post a Job</a>
+      <a href="/worker.html"   class="btn btn-white">👷 I'm a Worker</a>
+      <a href="/workers.html"  class="btn btn-ghost">🔍 Browse Workers</a>
+    </div>
+  </div>
+  <div class="hero-illustration" aria-hidden="true">🔨</div>
+</section>
+
+<!-- ─── Stats Bar ─── -->
+<div class="stats-bar">
+  <div class="stats-bar-inner">
+    <div class="stats-bar-item"><div class="stats-bar-num" id="stat-workers">—</div><div class="stats-bar-lbl">Registered Workers</div></div>
+    <div class="stats-bar-item"><div class="stats-bar-num" id="stat-jobs">—</div><div class="stats-bar-lbl">Jobs Completed</div></div>
+    <div class="stats-bar-item"><div class="stats-bar-num">16+</div><div class="stats-bar-lbl">Job Categories</div></div>
+    <div class="stats-bar-item"><div class="stats-bar-num">📱+📞</div><div class="stats-bar-lbl">App &amp; Keypad Support</div></div>
+  </div>
+</div>
+
+<!-- ─── How It Works ─── -->
+<section class="section" id="how-it-works">
+  <div class="container">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start" class="how-grid">
+      <div>
+        <div class="section-title animate-on-scroll">How It Works</div>
+        <div class="section-sub">Simple 4-step process to get work done</div>
+        <div class="how-step animate-on-scroll"><div class="how-num">1</div><div class="how-text"><h4>Post a Job</h4><p>Describe the work, select category, add your location and budget. Mark "Urgent" for priority dispatch.</p></div></div>
+        <div class="how-step animate-on-scroll delay-1"><div class="how-num">2</div><div class="how-text"><h4>Workers Get Notified</h4><p>Top 10 nearby workers are notified instantly – via app or SMS on keypad phones. First to accept wins.</p></div></div>
+        <div class="how-step animate-on-scroll delay-2"><div class="how-num">3</div><div class="how-text"><h4>OTP-Verified Start</h4><p>Worker arrives, you share a start OTP. Job begins securely. Completion also requires an OTP.</p></div></div>
+        <div class="how-step animate-on-scroll delay-3"><div class="how-num">4</div><div class="how-text"><h4>Rate &amp; Pay</h4><p>After completion, rate the worker. Build digital history. Fair, dispute-free payments.</p></div></div>
+      </div>
+
+      <!-- Keypad Phone Box -->
+      <div>
+        <div class="keypad-box">
+          <h3>📞 No Smartphone? No Problem!</h3>
+          <p>KaamMitra supports keypad/basic phone workers through SMS confirmation.</p>
+          <ul class="sms-steps">
+            <li>Customer posts job → Backend finds nearby workers</li>
+            <li>Keypad phone worker receives SMS: <strong>"New job: Mason needed near MG Road. Reply YES to accept."</strong></li>
+            <li>Worker replies <strong>YES</strong> or <strong>1</strong> to confirm</li>
+            <li>Backend locks job, customer notified instantly</li>
+            <li>No internet, no app needed — just a working SIM card</li>
+          </ul>
+        </div>
+
+        <div class="card" style="margin-top:20px">
+          <h3 style="margin-bottom:16px;font-size:1.1rem">🏆 Worker Ranking System</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <span class="rank-badge rank-Bronze">Bronze</span>
+            <span class="rank-badge rank-Silver">Silver</span>
+            <span class="rank-badge rank-Gold">Gold</span>
+            <span class="rank-badge rank-Platinum">Platinum</span>
+          </div>
+          <p style="font-size:0.88rem;color:#718096">Earn points for completing jobs, 5-star ratings, on-time arrival. Higher rank = more job visibility and priority in dispatch.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Categories ─── -->
+<section class="section" id="categories" style="background:white">
+  <div class="container">
+    <div class="section-title">Job Categories</div>
+    <div class="section-sub">Find workers across all trades — or check market pricing</div>
+    <div class="category-grid" id="category-grid">
+      <!-- Filled by JS -->
+    </div>
+    <div class="pricing-box" id="pricing-box">
+      <strong id="pricing-category"></strong> — Market Rate:
+      <span id="pricing-range" style="color:var(--primary);font-weight:700"></span>
+      <span style="font-size:0.8rem;color:#718096;margin-left:8px">(based on <span id="pricing-workers">0</span> registered workers)</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Featured Workers ─── -->
+<section class="section" id="featured">
+  <div class="container">
+    <div class="section-title">Top Rated Workers</div>
+    <div class="section-sub">Verified, ranked professionals ready for hire</div>
+    <div class="card-grid" id="workers-grid">
+      <div style="text-align:center;color:#718096;padding:40px;grid-column:1/-1">
+        <div style="font-size:2rem">👷</div>
+        <p>Loading workers...</p>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:24px">
+      <a href="/workers.html" class="btn btn-outline">View All Workers →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CTA ─── -->
+<section class="section" style="background:linear-gradient(135deg,var(--primary-d),var(--primary));color:white;text-align:center;position:relative;overflow:hidden">
+  <div style="position:absolute;inset:0;background:url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.04\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');pointer-events:none"></div>
+  <div class="container" style="position:relative">
+    <div style="font-size:3rem;margin-bottom:14px;animation:float 3s ease-in-out infinite">🚀</div>
+    <h2 style="font-size:2.2rem;font-weight:900;color:white;margin-bottom:12px">Ready to Get Started?</h2>
+    <p style="opacity:0.9;max-width:520px;margin:0 auto 32px;font-size:1.05rem">Join thousands of workers and customers already using KaamMitra across India.</p>
+    <div class="hero-btns">
+      <a href="/customer.html" class="btn btn-accent">📋 Post a Job Now</a>
+      <a href="/worker.html"   class="btn btn-white">👷 Register as Worker</a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Footer ─── -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>🔨 KaamMitra</h4>
+        <p style="font-size:0.85rem;margin-bottom:10px">Hybrid Labour Marketplace Platform connecting daily wage workers and employers across India.</p>
+        <p style="font-size:0.8rem">Works on both smartphone app & keypad phones via SMS.</p>
+      </div>
+      <div>
+        <h4>For Workers</h4>
+        <ul>
+          <li><a href="/worker.html">Register as Worker</a></li>
+          <li><a href="/worker.html#jobs">View Available Jobs</a></li>
+          <li><a href="/worker.html#stats">My Dashboard</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>For Customers</h4>
+        <ul>
+          <li><a href="/customer.html">Post a Job</a></li>
+          <li><a href="/workers.html">Browse Workers</a></li>
+          <li><a href="/customer.html#jobs">My Jobs</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Platform</h4>
+        <ul>
+          <li><a href="#how-it-works">How It Works</a></li>
+          <li><a href="#categories">Categories</a></li>
+          <li><a href="/api/health">API Status</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      &copy; 2025 KaamMitra | Hybrid Labour Marketplace Platform | Built for India 🇮🇳
+    </div>
+  </div>
+</footer>
+
+<script src="/assets/app.js"></script>
+<script>
+const CATEGORY_ICONS = {
+  Mason: '🧱', Plumber: '🔧', Electrician: '⚡', Carpenter: '🪵',
+  Painter: '🎨', Welder: '🔩', 'AC Technician': '❄️', 'House Help': '🏠',
+  'Construction Labour': '🏗️', 'Loading/Unloading': '📦', Driver: '🚗',
+  'Security Guard': '💂', Gardener: '🌿', Tiler: '🔲', Cleaner: '🧹',
+  Cook: '👨‍🍳', general: '⚙️',
+};
+
+async function init() {
+  // Load categories
+  const categories = await KM.loadCategories();
+  const grid = document.getElementById('category-grid');
+  if (grid && categories.length) {
+    grid.innerHTML = categories.map(cat => `
+      <div class="category-chip" onclick="showPricing('${KM.escHtml(cat)}')">
+        <span class="emoji">${CATEGORY_ICONS[cat] || '⚙️'}</span>
+        ${KM.escHtml(cat)}
+      </div>`).join('');
+  }
+
+  // Load featured workers
+  try {
+    const data = await KM.apiCall('GET', '/workers', null, false);
+    const grid2 = document.getElementById('workers-grid');
+    if (grid2) {
+      const top = data.workers.slice(0, 6);
+      if (top.length === 0) {
+        grid2.innerHTML = '<div style="text-align:center;color:#718096;padding:40px;grid-column:1/-1"><div style="font-size:2rem">👷</div><p>No workers registered yet. <a href="/worker.html">Be the first!</a></p></div>';
+      } else {
+        grid2.innerHTML = top.map(KM.renderWorkerCard).join('');
+      }
+    }
+  } catch {}
+
+  // Load platform stats (public endpoint)
+  try {
+    const stats = await KM.apiCall('GET', '/stats', null, false);
+    const wEl = document.getElementById('stat-workers');
+    const jEl = document.getElementById('stat-jobs');
+    if (wEl) wEl.textContent = stats.worker_count > 0 ? stats.worker_count + '+' : '0';
+    if (jEl) jEl.textContent = stats.completed_jobs > 0 ? stats.completed_jobs + '+' : '0';
+  } catch {}
+}
+
+async function showPricing(category) {
+  const box = document.getElementById('pricing-box');
+  try {
+    const data = await KM.apiCall('GET', `/pricing/${encodeURIComponent(category)}`, null, false);
+    box.style.display = 'block';
+    document.getElementById('pricing-category').textContent = category;
+    document.getElementById('pricing-workers').textContent  = data.worker_count || 0;
+    if (data.suggested_min !== null) {
+      document.getElementById('pricing-range').textContent =
+        `₹${data.suggested_min} – ₹${data.suggested_max}/day (avg ₹${data.average_rate})`;
+    } else {
+      document.getElementById('pricing-range').textContent = 'No data yet';
+    }
+  } catch {
+    box.style.display = 'none';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
